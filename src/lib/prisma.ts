@@ -2,11 +2,13 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 function createPrismaClient() {
-  // Use POSTGRES_URL_NO_SSL which has minimal parameters
-  const connectionString = process.env.POSTGRES_URL_NO_SSL || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+  // Use DATABASE_URL which Neon sets automatically
+  const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
+    console.error("Available env vars:", Object.keys(process.env).filter(k => k.includes('PG') || k.includes('DATABASE') || k.includes('POSTGRES')));
     throw new Error("DATABASE_URL environment variable is not set");
   }
+  console.log("Connecting to database...");
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
 }
