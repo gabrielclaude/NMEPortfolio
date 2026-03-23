@@ -1,14 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 function createPrismaClient() {
-  const datasourceUrl = process.env.DATABASE_URL;
-  if (!datasourceUrl) {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is not set");
   }
-  // Prisma Postgres (db.prisma.io) - use datasourceUrl
-  return new PrismaClient({
-    datasourceUrl
-  } as ConstructorParameters<typeof PrismaClient>[0]);
+  // Use PrismaPg adapter for Prisma Postgres
+  const adapter = new PrismaPg({ connectionString });
+  return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
 }
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
