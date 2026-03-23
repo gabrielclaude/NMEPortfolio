@@ -1,11 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 
 function createPrismaClient() {
-  const accelerateUrl = process.env.DATABASE_URL;
-  if (!accelerateUrl) {
+  const datasourceUrl = process.env.DATABASE_URL;
+  if (!datasourceUrl) {
     throw new Error("DATABASE_URL environment variable is not set");
   }
-  return new PrismaClient({ accelerateUrl } as ConstructorParameters<typeof PrismaClient>[0]);
+  // Prisma Postgres (db.prisma.io) - use datasourceUrl
+  return new PrismaClient({
+    datasourceUrl
+  } as ConstructorParameters<typeof PrismaClient>[0]);
 }
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
