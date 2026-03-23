@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient, TherapeuticArea, MoleculeType, NMEStatus, TrialPhase, TrialStatus, StaffRole, ProjectStatus, MilestoneStatus, TaskStatus, TaskPriority } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { faker } from "@faker-js/faker";
