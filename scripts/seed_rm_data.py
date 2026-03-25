@@ -322,7 +322,131 @@ print("\nSegment summary:")
 for row in cur.fetchall():
     print(f"  {row[0]:6s} | {row[1]:12s} | {row[2]:22s} | {row[3]:.2f} FTE/mo | {row[4]:.2f} total")
 
-# ─── 10. Create view for NME-level monthly FTE ────────────────────────────────
+# ─── 10. Generate synthetic RM data for more NMEs ─────────────────────────────
+import random
+random.seed(42)  # For reproducibility
+
+# Get NMEs that don't have any studies with segments
+cur.execute("""
+    SELECT n.id, n.code FROM "NME" n
+    WHERE n.id NOT IN (
+        SELECT DISTINCT s.nme_id FROM rm_study s
+        JOIN rm_study_segment seg ON seg.study_id = s.id
+        WHERE s.nme_id IS NOT NULL
+    )
+    ORDER BY n.code
+    LIMIT 12
+""")
+nmes_without_data = cur.fetchall()
+print(f"Generating synthetic data for {len(nmes_without_data)} NMEs...")
+
+roles = ["Clinical Scientist", "Medical Monitor", "Clinical RA"]
+activities = ["Start Up", "Conduct", "Close Out"]
+complexities = ["Low", "Medium", "High"]
+fte_base = {"Low": 0.5, "Medium": 1.0, "High": 1.5}
+
+for nme_id, nme_code in nmes_without_data:
+    # Create 1-2 studies per NME
+    num_studies = random.randint(1, 2)
+    for study_num in range(num_studies):
+        study_id = f"{nme_code}-S{study_num + 1}"
+        phase = random.randint(1, 3)
+        complexity = random.choice(complexities)
+
+        # Insert study
+        cur.execute("""
+            INSERT INTO rm_study (id, phase, status, complexity, nme_id)
+            VALUES (%s, %s, 'Active', %s, %s)
+            ON CONFLICT DO NOTHING
+        """, (study_id, phase, complexity, nme_id))
+
+        # Create segments for each role
+        for role in roles:
+            # Randomize start dates within 2024-2025
+            start_month = random.randint(1, 18)  # Jan 2024 to Jun 2025
+            start_date = datetime.date(2024, 1, 1) + datetime.timedelta(days=start_month * 30)
+
+            for activity in activities:
+                # Duration varies by activity
+                if activity == "Start Up":
+                    duration_months = random.randint(3, 6)
+                elif activity == "Conduct":
+                    duration_months = random.randint(12, 24)
+                else:  # Close Out
+                    duration_months = random.randint(3, 6)
+
+                end_date = start_date + datetime.timedelta(days=duration_months * 30)
+                days = (end_date - start_date).days
+                fte_pm = fte_base[complexity] * random.uniform(0.5, 1.5)
+
+                # Insert segment
+                cur.execute("""
+                    INSERT INTO rm_study_segment
+                        (study_id, activity, start_date, end_date, complexity, role, phase, days, fte_per_month)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (study_id, activity, role) DO NOTHING
+                    RETURNING id
+                """, (study_id, activity, start_date, end_date, complexity, role, phase, days, round(fte_pm, 2)))
+
+                result = cur.fetchone()
+                if result:
+                    seg_id = result[0]
+
+                    # Generate monthly FTE values
+                    monthly_rows = []
+                    current = datetime.date(start_date.year, start_date.month, 1)
+                    end_month = datetime.date(end_date.year, end_date.month, 1)
+
+                    while current <= end_month and current <= datetime.date(2026, 12, 1):
+                        # Calculate prorated FTE for this month
+                        month_start = max(current, start_date)
+                        next_month = datetime.date(current.year + (current.month // 12),
+                                                   ((current.month % 12) + 1), 1)
+                        month_end = min(next_month - datetime.timedelta(days=1), end_date)
+
+                        if month_end >= month_start:
+                            days_in_month = (month_end - month_start).days + 1
+                            total_days_in_month = (next_month - current).days
+                            prorated_fte = fte_pm * (days_in_month / total_days_in_month)
+                            monthly_rows.append((seg_id, current, round(prorated_fte, 4)))
+
+                        current = next_month
+
+                    if monthly_rows:
+                        execute_values(cur,
+                            "INSERT INTO rm_monthly_fte (segment_id, month_date, fte_value) VALUES %s ON CONFLICT DO NOTHING",
+                            monthly_rows)
+
+                # Move start date forward for next activity
+                start_date = end_date
+
+conn.commit()
+print(f"Synthetic data generated for {len(nmes_without_data)} NMEs.")
+
+# Also create some staff assignments for the synthetic studies
+cur.execute("SELECT id FROM rm_personnel ORDER BY RANDOM() LIMIT 4")
+personnel_ids = [row[0] for row in cur.fetchall()]
+
+if personnel_ids:
+    for nme_id, nme_code in nmes_without_data:
+        cur.execute("SELECT id FROM rm_study WHERE nme_id = %s", (nme_id,))
+        study_ids = [row[0] for row in cur.fetchall()]
+
+        for study_id in study_ids:
+            # Assign 1-2 staff members
+            for role in random.sample(roles[:2], random.randint(1, 2)):
+                pid = random.choice(personnel_ids)
+                pct = random.uniform(0.3, 0.8)
+                cur.execute("""
+                    INSERT INTO rm_staff_assignment (study_id, personnel_id, role, allocation_pct)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                """, (study_id, pid, role, round(pct, 2)))
+
+conn.commit()
+print("Staff assignments added for synthetic studies.")
+
+# ─── 11. Create view for NME-level monthly FTE ────────────────────────────────
 cur.execute("""
 DROP VIEW IF EXISTS v_rm_monthly_by_nme;
 CREATE OR REPLACE VIEW v_rm_monthly_by_nme AS
