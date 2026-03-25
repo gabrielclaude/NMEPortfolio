@@ -34,8 +34,6 @@ export function NMEEVMTable({ rows }: { rows: NMEEVMRow[] }) {
           {rows.map((row) => {
             const spi = row.portfolio_spi ?? 1;
             const cpi = row.portfolio_cpi ?? 1;
-            const sv = Number(row.total_ev) - Number(row.total_pv);
-            const cv = Number(row.total_ev) - Number(row.total_ac);
 
             return (
               <tr key={row.nme_id} className="hover:bg-gray-50 transition-colors">
@@ -79,10 +77,10 @@ export function NMEEVMTable({ rows }: { rows: NMEEVMRow[] }) {
                     <div className="h-1.5 w-12 overflow-hidden rounded-full bg-gray-200">
                       <div
                         className="h-full rounded-full bg-emerald-500"
-                        style={{ width: `${Math.min(row.task_completion_pct ?? 0, 100)}%` }}
+                        style={{ width: `${Math.min(Number(row.task_completion_pct ?? 0), 100)}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500">{row.task_completion_pct ?? 0}%</span>
+                    <span className="text-xs text-gray-500">{Number(row.task_completion_pct ?? 0)}%</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right text-center">

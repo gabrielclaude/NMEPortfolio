@@ -3,10 +3,10 @@ export interface ProjectEVMRow {
   project_code: string;
   project_name: string;
   project_status: string;
-  planned_start: Date;
-  planned_end: Date;
-  actual_start: Date | null;
-  actual_end: Date | null;
+  plannedStart: Date;
+  plannedEnd: Date;
+  actualStart: Date | null;
+  actualEnd: Date | null;
   pct_complete: number;
   trial_id: string;
   nct_number: string;
