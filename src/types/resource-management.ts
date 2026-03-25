@@ -70,3 +70,38 @@ export interface RMSummary {
   peak_fte: number;
   current_month_fte: number;
 }
+
+// ─── NME Resource Management Types ────────────────────────────────────────────
+
+// Study with NME assignment
+export interface RMStudyWithNME extends RMStudy {
+  nme_id: string | null;
+}
+
+// NME-specific monthly demand (from v_rm_monthly_by_nme)
+export interface NMEMonthlyRoleDemand {
+  month_date: Date;
+  month_label: string;
+  nme_id: string;
+  role: string;
+  fte_demand: number;
+}
+
+// NME RM summary for dashboard cards
+export interface NMERMSummary {
+  nme_id: string;
+  nme_code: string;
+  nme_name: string;
+  study_count: number;
+  total_fte_demand: number;
+  peak_month_label: string;
+  peak_fte: number;
+  current_month_fte: number;
+}
+
+// NME option for selector dropdown
+export interface NMEOption {
+  id: string;
+  code: string;
+  name: string;
+}

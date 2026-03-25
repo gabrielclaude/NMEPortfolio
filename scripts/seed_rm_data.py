@@ -40,7 +40,8 @@ CREATE TABLE rm_study (
   id         TEXT PRIMARY KEY,
   phase      INT  NOT NULL DEFAULT 1,
   status     TEXT NOT NULL DEFAULT 'Active',
-  complexity TEXT NOT NULL DEFAULT 'Low'
+  complexity TEXT NOT NULL DEFAULT 'Low',
+  nme_id     TEXT REFERENCES "NME"(id)
 );
 
 CREATE TABLE rm_study_segment (
@@ -221,18 +222,25 @@ for seg in segment_rows:
     study_phase_map[seg["study_id"]] = seg["phase"]
     study_complexity_map[seg["study_id"]] = seg["complexity"]
 
-# Insert studies
+# Fetch available NME IDs to distribute studies across NMEs
+cur.execute('SELECT id FROM "NME" ORDER BY code')
+nme_ids = [row[0] for row in cur.fetchall()]
+print(f"Found {len(nme_ids)} NMEs for study assignment")
+
+# Insert studies with NME assignment (round-robin distribution)
 study_rows = []
-for sid in sorted(all_study_ids):
+for i, sid in enumerate(sorted(all_study_ids)):
     phase      = study_phase_map.get(sid, 1)
     complexity = study_complexity_map.get(sid, "Low")
-    study_rows.append((sid, phase, "Active", complexity))
+    # Assign NME in round-robin fashion if NMEs exist
+    nme_id = nme_ids[i % len(nme_ids)] if nme_ids else None
+    study_rows.append((sid, phase, "Active", complexity, nme_id))
 
 execute_values(cur,
-    "INSERT INTO rm_study (id, phase, status, complexity) VALUES %s ON CONFLICT DO NOTHING",
+    "INSERT INTO rm_study (id, phase, status, complexity, nme_id) VALUES %s ON CONFLICT DO NOTHING",
     study_rows)
 conn.commit()
-print(f"Studies: {len(study_rows)} inserted.")
+print(f"Studies: {len(study_rows)} inserted with NME assignments.")
 
 # ─── 6. Insert Personnel ─────────────────────────────────────────────────────
 # Collect all unique person names from assignments too
@@ -313,6 +321,26 @@ cur.execute("""
 print("\nSegment summary:")
 for row in cur.fetchall():
     print(f"  {row[0]:6s} | {row[1]:12s} | {row[2]:22s} | {row[3]:.2f} FTE/mo | {row[4]:.2f} total")
+
+# ─── 10. Create view for NME-level monthly FTE ────────────────────────────────
+cur.execute("""
+DROP VIEW IF EXISTS v_rm_monthly_by_nme;
+CREATE OR REPLACE VIEW v_rm_monthly_by_nme AS
+SELECT
+  m.month_date,
+  TO_CHAR(m.month_date, 'Mon-YY') AS month_label,
+  s.nme_id,
+  seg.role,
+  ROUND(SUM(m.fte_value)::NUMERIC, 4) AS fte_demand
+FROM rm_monthly_fte m
+JOIN rm_study_segment seg ON seg.id = m.segment_id
+JOIN rm_study s ON s.id = seg.study_id
+WHERE s.nme_id IS NOT NULL
+GROUP BY m.month_date, s.nme_id, seg.role
+ORDER BY m.month_date, seg.role;
+""")
+conn.commit()
+print("View v_rm_monthly_by_nme created.")
 
 cur.close()
 conn.close()

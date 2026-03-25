@@ -28,6 +28,7 @@ const navItems = [
   { href: "/portfolio",         label: "Portfolio Opt.",  icon: Target },
   { href: "/nme-portfolio",     label: "NME Frontier",    icon: BarChart2 },
   { href: "/rm",                label: "Resource Mgmt",   icon: CalendarDays },
+  { href: "/rm/nme",            label: "RM by NME",       icon: FlaskConical },
 ];
 
 export function Sidebar() {
