@@ -326,7 +326,82 @@ for row in cur.fetchall():
 import random
 random.seed(42)  # For reproducibility
 
-# Get NMEs that don't have any studies with segments
+# First, add segments to existing studies that don't have any
+cur.execute("""
+    SELECT s.id, s.phase, s.complexity, s.nme_id
+    FROM rm_study s
+    LEFT JOIN rm_study_segment seg ON seg.study_id = s.id
+    WHERE seg.id IS NULL AND s.nme_id IS NOT NULL
+""")
+studies_without_segments = cur.fetchall()
+print(f"Adding segments to {len(studies_without_segments)} existing studies without segment data...")
+
+roles = ["Clinical Scientist", "Medical Monitor", "Clinical RA"]
+activities = ["Start Up", "Conduct", "Close Out"]
+complexities = ["Low", "Medium", "High"]
+fte_base = {"Low": 0.5, "Medium": 1.0, "High": 1.5}
+
+for study_id, phase, complexity, nme_id in studies_without_segments:
+    if not complexity:
+        complexity = random.choice(complexities)
+
+    # Create segments for each role
+    for role in roles:
+        start_month = random.randint(1, 12)
+        start_date = datetime.date(2024, 1, 1) + datetime.timedelta(days=start_month * 30)
+
+        for activity in activities:
+            if activity == "Start Up":
+                duration_months = random.randint(3, 6)
+            elif activity == "Conduct":
+                duration_months = random.randint(12, 18)
+            else:
+                duration_months = random.randint(3, 6)
+
+            end_date = start_date + datetime.timedelta(days=duration_months * 30)
+            days = (end_date - start_date).days
+            fte_pm = fte_base.get(complexity, 1.0) * random.uniform(0.5, 1.5)
+
+            cur.execute("""
+                INSERT INTO rm_study_segment
+                    (study_id, activity, start_date, end_date, complexity, role, phase, days, fte_per_month)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (study_id, activity, role) DO NOTHING
+                RETURNING id
+            """, (study_id, activity, start_date, end_date, complexity, role, phase or 1, days, round(fte_pm, 2)))
+
+            result = cur.fetchone()
+            if result:
+                seg_id = result[0]
+                monthly_rows = []
+                current = datetime.date(start_date.year, start_date.month, 1)
+                end_month = datetime.date(end_date.year, end_date.month, 1)
+
+                while current <= end_month and current <= datetime.date(2026, 12, 1):
+                    month_start = max(current, start_date)
+                    next_month = datetime.date(current.year + (current.month // 12),
+                                               ((current.month % 12) + 1), 1)
+                    month_end = min(next_month - datetime.timedelta(days=1), end_date)
+
+                    if month_end >= month_start:
+                        days_in_month = (month_end - month_start).days + 1
+                        total_days_in_month = (next_month - current).days
+                        prorated_fte = fte_pm * (days_in_month / total_days_in_month)
+                        monthly_rows.append((seg_id, current, round(prorated_fte, 4)))
+
+                    current = next_month
+
+                if monthly_rows:
+                    execute_values(cur,
+                        "INSERT INTO rm_monthly_fte (segment_id, month_date, fte_value) VALUES %s ON CONFLICT DO NOTHING",
+                        monthly_rows)
+
+            start_date = end_date
+
+conn.commit()
+print(f"Segments added to {len(studies_without_segments)} existing studies.")
+
+# Now get NMEs that still don't have any studies with segments
 cur.execute("""
     SELECT n.id, n.code FROM "NME" n
     WHERE n.id NOT IN (
