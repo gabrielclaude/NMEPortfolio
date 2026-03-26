@@ -521,7 +521,8 @@ if personnel_ids:
 conn.commit()
 print("Staff assignments added for synthetic studies.")
 
-# ─── 11. Create view for NME-level monthly FTE ────────────────────────────────
+# ─── 11. Create views for monthly FTE ─────────────────────────────────────────
+# View for NME-level monthly FTE (used by /rm/nme page)
 cur.execute("""
 DROP VIEW IF EXISTS v_rm_monthly_by_nme;
 CREATE OR REPLACE VIEW v_rm_monthly_by_nme AS
@@ -540,6 +541,23 @@ ORDER BY m.month_date, seg.role;
 """)
 conn.commit()
 print("View v_rm_monthly_by_nme created.")
+
+# View for overall monthly FTE by role (used by /rm page)
+cur.execute("""
+DROP VIEW IF EXISTS v_rm_monthly_by_role;
+CREATE OR REPLACE VIEW v_rm_monthly_by_role AS
+SELECT
+  m.month_date,
+  TO_CHAR(m.month_date, 'Mon-YY') AS month_label,
+  seg.role,
+  ROUND(SUM(m.fte_value)::NUMERIC, 4) AS fte_demand
+FROM rm_monthly_fte m
+JOIN rm_study_segment seg ON seg.id = m.segment_id
+GROUP BY m.month_date, seg.role
+ORDER BY m.month_date, seg.role;
+""")
+conn.commit()
+print("View v_rm_monthly_by_role created.")
 
 cur.close()
 conn.close()
