@@ -14,6 +14,7 @@ import {
   Target,
   BarChart2,
   CalendarDays,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/nme-portfolio",     label: "NME Frontier",    icon: BarChart2 },
   { href: "/rm",                label: "Resource Mgmt",   icon: CalendarDays },
   { href: "/rm/nme",            label: "RM by NME",       icon: FlaskConical },
+  { href: "/admin",             label: "Admin",           icon: Settings },
 ];
 
 export function Sidebar() {
