@@ -11,6 +11,7 @@ import {
   CheckSquare,
   CalendarDays,
   ArrowRight,
+  UserCheck,
 } from "lucide-react";
 
 async function getStats() {
@@ -26,6 +27,7 @@ async function getStats() {
   // RM counts via raw query
   const rmStudyCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_study`;
   const rmPersonnelCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_personnel`;
+  const rmAssignmentCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_staff_assignment`;
 
   return {
     nmeCount,
@@ -36,6 +38,7 @@ async function getStats() {
     taskCount,
     rmStudyCount: Number(rmStudyCount[0]?.count ?? 0),
     rmPersonnelCount: Number(rmPersonnelCount[0]?.count ?? 0),
+    rmAssignmentCount: Number(rmAssignmentCount[0]?.count ?? 0),
   };
 }
 
@@ -162,6 +165,14 @@ export default async function AdminPage() {
             href="/admin/rm/personnel"
             iconBg="bg-cyan-50"
             iconColor="text-cyan-600"
+          />
+          <StatCard
+            icon={UserCheck}
+            label="RM Assignments"
+            count={stats.rmAssignmentCount}
+            href="/admin/rm/assignments"
+            iconBg="bg-violet-50"
+            iconColor="text-violet-600"
           />
         </div>
       </div>
