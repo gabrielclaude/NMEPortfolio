@@ -12,6 +12,7 @@ import {
   CalendarDays,
   ArrowRight,
   UserCheck,
+  Layers,
 } from "lucide-react";
 
 async function getStats() {
@@ -28,6 +29,7 @@ async function getStats() {
   const rmStudyCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_study`;
   const rmPersonnelCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_personnel`;
   const rmAssignmentCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_staff_assignment`;
+  const rmSegmentCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_study_segment`;
 
   return {
     nmeCount,
@@ -39,6 +41,7 @@ async function getStats() {
     rmStudyCount: Number(rmStudyCount[0]?.count ?? 0),
     rmPersonnelCount: Number(rmPersonnelCount[0]?.count ?? 0),
     rmAssignmentCount: Number(rmAssignmentCount[0]?.count ?? 0),
+    rmSegmentCount: Number(rmSegmentCount[0]?.count ?? 0),
   };
 }
 
@@ -149,7 +152,7 @@ export default async function AdminPage() {
       {/* Resource Management */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Resource Management</h2>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={CalendarDays}
             label="RM Studies"
@@ -157,6 +160,14 @@ export default async function AdminPage() {
             href="/admin/rm/studies"
             iconBg="bg-rose-50"
             iconColor="text-rose-600"
+          />
+          <StatCard
+            icon={Layers}
+            label="RM Segments"
+            count={stats.rmSegmentCount}
+            href="/admin/rm/segments"
+            iconBg="bg-orange-50"
+            iconColor="text-orange-600"
           />
           <StatCard
             icon={Users}
