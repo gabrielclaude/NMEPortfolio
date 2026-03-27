@@ -13,6 +13,7 @@ import {
   ArrowRight,
   UserCheck,
   Layers,
+  Grid3X3,
 } from "lucide-react";
 
 async function getStats() {
@@ -30,6 +31,7 @@ async function getStats() {
   const rmPersonnelCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_personnel`;
   const rmAssignmentCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_staff_assignment`;
   const rmSegmentCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_study_segment`;
+  const rmFteMatrixCount = await prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) as count FROM rm_fte_matrix`;
 
   return {
     nmeCount,
@@ -42,6 +44,7 @@ async function getStats() {
     rmPersonnelCount: Number(rmPersonnelCount[0]?.count ?? 0),
     rmAssignmentCount: Number(rmAssignmentCount[0]?.count ?? 0),
     rmSegmentCount: Number(rmSegmentCount[0]?.count ?? 0),
+    rmFteMatrixCount: Number(rmFteMatrixCount[0]?.count ?? 0),
   };
 }
 
@@ -152,7 +155,7 @@ export default async function AdminPage() {
       {/* Resource Management */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Resource Management</h2>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <StatCard
             icon={CalendarDays}
             label="RM Studies"
@@ -184,6 +187,14 @@ export default async function AdminPage() {
             href="/admin/rm/assignments"
             iconBg="bg-violet-50"
             iconColor="text-violet-600"
+          />
+          <StatCard
+            icon={Grid3X3}
+            label="FTE Matrix"
+            count={stats.rmFteMatrixCount}
+            href="/admin/rm/fte-matrix"
+            iconBg="bg-slate-50"
+            iconColor="text-slate-600"
           />
         </div>
       </div>
