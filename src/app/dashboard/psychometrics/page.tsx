@@ -13,6 +13,8 @@ import {
 } from "@/lib/psychometrics";
 import { Users, UserCheck, UserX, Brain } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default function PsychometricsPage() {
   // Generate data (matching notebook's synthetic data)
   const candidateData = generateSyntheticData(1000, 42);
