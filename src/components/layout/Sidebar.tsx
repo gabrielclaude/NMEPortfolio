@@ -32,7 +32,7 @@ const navItems = [
   { href: "/evm",               label: "EVM",             icon: TrendingUp },
   { href: "/evm-predictions",   label: "EVM Predictions", icon: Sparkles },
   { href: "/staff/recommend",   label: "PS Recommender",  icon: Brain },
-  { href: "/psychometrics",     label: "Psychometrics",   icon: Activity },
+  { href: "/dashboard/psychometrics", label: "Psychometrics", icon: Activity },
   { href: "/portfolio",         label: "Portfolio Opt.",  icon: Target },
   { href: "/nme-portfolio",     label: "NME Frontier",    icon: BarChart2 },
   { href: "/rm",                label: "Resource Mgmt",   icon: CalendarDays },
